@@ -147,3 +147,30 @@ export const refreshTokenService = async(oldRefreshToken) => {
         newRefreshToken
     };
 }
+
+export const logoutService = async(refreshToken) => {
+    if (!refreshToken) {
+        throw new ApiError(400, "Refresh token missing");
+    }
+
+    let decoded;
+
+    try {
+        decoded = jwt.verify(refreshToken, Config.JWT_REFRESH_SECRET);
+    } catch (err) {
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // 🔥 Remove only this token (single device logout)
+    user.refreshTokens = user.refreshTokens.filter(
+        (t) => t.token !== refreshToken
+    );
+
+    await user.save();
+}

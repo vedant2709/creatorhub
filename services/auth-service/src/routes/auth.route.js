@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getMeController, loginUserController, refreshTokenController, registerUserController, verifyEmailController } from "../controllers/auth.controller.js";
+import { getMeController, loginUserController, logoutController, refreshTokenController, registerUserController, verifyEmailController } from "../controllers/auth.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -9,5 +9,6 @@ router.get("/verify-email/:token", verifyEmailController);
 router.post("/login", loginUserController);
 router.get("/me", authMiddlware ,getMeController);
 router.post("/refresh-token" ,refreshTokenController);
+router.post("/logout" ,logoutController);
 
 export default router;

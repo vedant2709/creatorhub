@@ -1,4 +1,4 @@
-import { getMeService, loginUserService, refreshTokenService, registerUserService, verifyEmailService } from "../services/auth.service.js";
+import { getMeService, loginUserService, logoutService, refreshTokenService, registerUserService, verifyEmailService } from "../services/auth.service.js";
 import ApiError from "../utils/ApiError.js";
 import { generateEmailToken } from "../utils/generateTokens.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
@@ -112,6 +112,28 @@ export const refreshTokenController = async(req,res,next) => {
         res.status(200).json({
             success: true,
             accessToken: newAccessToken
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const logoutController = async(req,res,next) => {
+    try {
+         const refreshToken = req.cookies.refreshToken;
+
+        await logoutService(refreshToken);
+
+        // 🍪 Clear cookie
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: false, // true in production
+            sameSite: "strict"
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Logged out successfully"
         });
     } catch (error) {
         next(error)
