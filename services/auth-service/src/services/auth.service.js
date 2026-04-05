@@ -4,6 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 import { Config } from "../config/config.js";
 import userModel from "../models/user.model.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/generateTokens.js";
 
 export const registerUserService = async ({name, email, password}) => {
     const existingUser = await User.findOne({ email });
@@ -44,6 +45,54 @@ export const verifyEmailService = async (token) => {
 
     user.isEmailVerified = true;
     await user.save();
+
+    return user;
+}
+
+export const loginUserService = async ({email, password}) => {
+    // 1. Check user
+    const user = await User.findOne({email});
+
+    if (!user) {
+        throw new ApiError(400, "User not found");
+    }
+
+    // 2. Check email verification
+    if (!user.isEmailVerified) {
+        throw new ApiError(403, "Please verify your email first");
+    }
+
+    // 3. Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+        throw new ApiError(400, "Invalid credentials");
+    }
+
+    // 4. Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // 5. Store refresh token in DB
+    user.refreshTokens.push({
+        token: refreshToken
+    });
+
+    await user.save();
+
+    return {
+        accessToken,
+        refreshToken,
+        user
+    };
+}
+
+export const getMeService = async (userId) => {
+    const user = await User.findById(userId).select("-password -refreshTokens");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
 
     return user;
 }
