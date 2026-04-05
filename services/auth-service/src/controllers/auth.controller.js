@@ -1,4 +1,4 @@
-import { getMeService, loginUserService, registerUserService, verifyEmailService } from "../services/auth.service.js";
+import { getMeService, loginUserService, refreshTokenService, registerUserService, verifyEmailService } from "../services/auth.service.js";
 import ApiError from "../utils/ApiError.js";
 import { generateEmailToken } from "../utils/generateTokens.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
@@ -89,6 +89,29 @@ export const getMeController = async(req,res,next) => {
         res.status(200).json({
             success: true,
             data: user
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const refreshTokenController = async(req,res,next) => {
+    try {
+        const oldRefreshToken = req.cookies.refreshToken;
+
+        const {newAccessToken, newRefreshToken} = await refreshTokenService(oldRefreshToken);
+
+        // 🍪 Set new refresh token cookie
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: false, // true in production
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.status(200).json({
+            success: true,
+            accessToken: newAccessToken
         });
     } catch (error) {
         next(error)

@@ -96,3 +96,54 @@ export const getMeService = async (userId) => {
 
     return user;
 }
+
+export const refreshTokenService = async(oldRefreshToken) => {
+    if (!oldRefreshToken) {
+        throw new ApiError(401, "Refresh token missing");
+    }
+
+    let decoded;
+
+    try {
+        decoded = jwt.verify(oldRefreshToken, Config.JWT_REFRESH_SECRET);
+    } catch (error) {
+        throw new ApiError(401, "Invalid or expired refresh token");
+    }
+
+    // 1. Find user
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // 2. Check if token exists in DB
+    const tokenExists = user.refreshTokens.find(
+        (t) => t.token === oldRefreshToken
+    );
+
+    if (!tokenExists) {
+        throw new ApiError(401, "Refresh token not recognized");
+    }
+
+    // 🔥 3. ROTATION: remove old token
+    user.refreshTokens = user.refreshTokens.filter(
+        (t) => t.token !== oldRefreshToken
+    );
+
+    // 4. Generate new tokens
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    // 5. Store new refresh token
+    user.refreshTokens.push({
+        token: newRefreshToken
+    });
+
+    await user.save();
+
+    return {
+        newAccessToken,
+        newRefreshToken
+    };
+}
