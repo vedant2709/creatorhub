@@ -27,3 +27,11 @@ export const generateEmailToken = (user) => {
     { expiresIn: "1d" }
   );
 };
+
+export const generateResetToken = (user) => {
+    return jwt.sign(
+        { id: user._id },
+        Config.RESET_PASSWORD_SECRET,
+        { expiresIn: "15m" }
+    )
+}

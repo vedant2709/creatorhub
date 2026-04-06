@@ -1,4 +1,4 @@
-import { getMeService, loginUserService, logoutService, refreshTokenService, registerUserService, verifyEmailService } from "../services/auth.service.js";
+import { forgotPasswordService, getMeService, loginUserService, logoutService, refreshTokenService, registerUserService, resetPasswordService, verifyEmailService } from "../services/auth.service.js";
 import ApiError from "../utils/ApiError.js";
 import { generateEmailToken } from "../utils/generateTokens.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
@@ -137,5 +137,36 @@ export const logoutController = async(req,res,next) => {
         });
     } catch (error) {
         next(error)
+    }
+}
+
+export const forgortPasswordController = async(req,res,next) => {
+    try {
+        const {email} = req.body;
+
+        await forgotPasswordService(email);
+
+        res.status(200).json({
+            success: true,
+            message: "If this email exists, a reset link has been sent"
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const resetPasswordController = async(req,res,next) => {
+    try {
+        const {token} = req.params;
+        const { password } = req.body;
+
+        await resetPasswordService(token, password);
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successful"
+        });
+    } catch (error) {
+        next(error)   
     }
 }

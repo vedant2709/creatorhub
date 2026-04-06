@@ -10,6 +10,7 @@ const CLIENT_URL = process.env.CLIENT_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const EMAIL_VERIFY_SECRET = process.env.EMAIL_VERIFY_SECRET;
+const RESET_PASSWORD_SECRET = process.env.RESET_PASSWORD_SECRET;
 
 if(!PORT){
     throw new Error("PORT is missing in environment variables.");
@@ -43,6 +44,10 @@ if(!EMAIL_VERIFY_SECRET){
     throw new Error("EMAIL_VERIFY_SECRET is missing in environment variables.");
 }
 
+if(!RESET_PASSWORD_SECRET){
+    throw new Error("RESET_PASSWORD_SECRET is missing in environment variables.");
+}
+
 export const Config = {
     PORT,
     MONGO_URI,
@@ -51,5 +56,6 @@ export const Config = {
     EMAIL_FROM,
     JWT_SECRET,
     JWT_REFRESH_SECRET,
-    EMAIL_VERIFY_SECRET
+    EMAIL_VERIFY_SECRET,
+    RESET_PASSWORD_SECRET
 }

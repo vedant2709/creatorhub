@@ -4,7 +4,8 @@ import ApiError from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 import { Config } from "../config/config.js";
 import userModel from "../models/user.model.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/generateTokens.js";
+import { generateAccessToken, generateRefreshToken, generateResetToken } from "../utils/generateTokens.js";
+import { sendResetPasswordEmail } from "../utils/sendEmail.js";
 
 export const registerUserService = async ({name, email, password}) => {
     const existingUser = await User.findOne({ email });
@@ -171,6 +172,39 @@ export const logoutService = async(refreshToken) => {
     user.refreshTokens = user.refreshTokens.filter(
         (t) => t.token !== refreshToken
     );
+
+    await user.save();
+}
+
+export const forgotPasswordService = async(email) => {
+    const user = await User.findOne({email});
+
+    // 🔥 IMPORTANT: don't reveal if user exists
+    if (!user) return;
+
+    const token = generateResetToken(user);
+
+    await sendResetPasswordEmail(email, token);
+}
+
+export const resetPasswordService = async(token, newPassword) => {
+    let decoded;
+
+    try {
+        decoded = jwt.verify(token,Config.RESET_PASSWORD_SECRET);
+    } catch (error) {
+        throw new ApiError(400, "Invalid or expired token");
+    }
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
 
     await user.save();
 }
