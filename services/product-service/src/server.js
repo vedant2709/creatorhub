@@ -1,29 +1,17 @@
-import express from "express";
+import app from "./app.js"
+import { Config } from "./config/config.js"
+import connectToDB from "./config/db.js";
 
-const app = express();
-
-app.use(express.json());
-
-// Middleware to parse user from gateway header
-app.use((req, res, next) => {
-    const userHeader = req.headers['x-user'];
-    if (userHeader) {
-        try {
-            req.user = JSON.parse(userHeader);
-        } catch (e) {
-            console.error("Failed to parse x-user header", e);
-        }
+const startServer = async () => {
+    try {
+        await connectToDB();
+        app.listen(Config.PORT, () => {
+            console.log(`Product service running on port ${Config.PORT}`);
+        });
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
     }
-    next();
-});
+};
 
-app.get("/",(req,res)=>{
-    return res.status(200).json({
-        message: "Product fetched successfully",
-        user: req.user
-    })
-});
-
-app.listen(3002,()=>{
-    console.log("Product service running on 3002")
-})
+startServer();
