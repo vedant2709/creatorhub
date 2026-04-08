@@ -1,6 +1,6 @@
 import { Router } from "express";
 import upload from "../middlewares/upload.middleware.js";
-import { createProductController } from "../controllers/product.controller.js";
+import { createProductController, togglePusblishController } from "../controllers/product.controller.js";
 
 const router = Router();
 
@@ -11,6 +11,8 @@ router.post(
         {name: "thumbnail", maxCount: 1}
     ]),
     createProductController
-)
+);
+
+router.patch("/:id/publish", togglePusblishController);
 
 export default router;

@@ -1,4 +1,4 @@
-import { createProductService } from "../services/product.service.js";
+import { createProductService, togglePublishService } from "../services/product.service.js";
 import { createProductSchema } from "../validators/product.validator.js";
 
 export const createProductController = async(req,res,next) => {
@@ -72,5 +72,30 @@ export const createProductController = async(req,res,next) => {
         });
     } catch (error) {
         next(error)   
+    }
+}
+
+export const togglePusblishController = async(req,res,next) => {
+    try {
+        const {id} = req.params;
+
+        // ✅ Role check
+        if (req.user.role !== "creator") {
+            return res.status(403).json({
+                message: "Only creators allowed"
+            });
+        }
+
+        const product = await togglePublishService(id, req.user.id);
+
+        res.json({
+            success: true,
+            message: `Product ${
+                product.isPublished ? "published" : "unpublished"
+            } successfully`,
+            data: product
+        });
+    } catch (error) {
+        next(error)
     }
 }
