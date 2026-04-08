@@ -36,7 +36,17 @@ app.use(
 // Product service
 app.use(
   "/api/products",
-  authMiddleware,
+  (req, res, next) => {
+    // Apply auth only for specific methods/routes
+    if (
+      req.method === "POST" ||
+      req.path.includes("my-products") ||
+      req.path.includes("publish")
+    ) {
+      return authMiddleware(req, res, next);
+    }
+    next();
+  },
   createProxyMiddleware({
     target: process.env.PRODUCT_SERVICE_URL,
     changeOrigin: true,

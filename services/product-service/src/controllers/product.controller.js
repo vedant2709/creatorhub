@@ -1,4 +1,4 @@
-import { createProductService, togglePublishService } from "../services/product.service.js";
+import { createProductService, getMyProductsService, getProductsService, togglePublishService } from "../services/product.service.js";
 import { createProductSchema } from "../validators/product.validator.js";
 
 export const createProductController = async(req,res,next) => {
@@ -72,6 +72,44 @@ export const createProductController = async(req,res,next) => {
         });
     } catch (error) {
         next(error)   
+    }
+}
+
+// ✅ Public products
+export const getProductsController = async(req,res,next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+
+        const result = await getProductsService({page, limit});
+
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+// ✅ My products (creator dashboard)
+export const getMyProductsController = async(req,res,next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+
+        const result = await getMyProductsService({
+            userId: req.user.id,
+            page,
+            limit
+        });
+
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error)
     }
 }
 
