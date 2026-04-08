@@ -43,22 +43,33 @@ export const getMyProductsService = async({userId, page, limit}) => {
   };
 }
 
+export const getProductByIdService = async(productId, user) => {
+  const product = await Product.findById(productId);
+
+   if (!product) {
+    throw new Error("Product not found");
+  }
+
+  // 🔥 If not published, only creator can access
+  if(!product.isPublished){
+    if(!user || product.creatorId !== user.id){
+      throw new Error("Not authorized to view this product");
+    }
+  }
+
+  return product;
+}
+
 export const togglePublishService = async (productId, userId) => {
   const product = await Product.findById(productId);
 
   if (!product) {
-    return res.status(404).json({
-        success: false,
-        message: "Product not found."
-    });
+    throw new Error("Product not found.")
   }
 
   // 🔥 Ownership check
   if(product.creatorId !== userId){
-    return res.status(403).json({
-        success: false,
-        message: "Unauthorized access."
-    });
+    throw new Error("Unauthorized access.")
   }
 
   // 🔥 Toggle publish

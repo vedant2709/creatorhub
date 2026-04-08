@@ -1,4 +1,4 @@
-import { createProductService, getMyProductsService, getProductsService, togglePublishService } from "../services/product.service.js";
+import { createProductService, getMyProductsService, getProductByIdService, getProductsService, togglePublishService } from "../services/product.service.js";
 import { createProductSchema } from "../validators/product.validator.js";
 
 export const createProductController = async(req,res,next) => {
@@ -89,6 +89,30 @@ export const getProductsController = async(req,res,next) => {
         });
     } catch (error) {
         next(error)
+    }
+}
+
+export const getProductByIdController = async(req,res,next) => {
+    try {
+        const { id } = req.params;
+
+        const user = req.user || null; // 🔥 public + private support
+
+        const product = await getProductByIdService(id, user);
+
+        res.json({
+            success: true,
+            data: product
+        });
+
+    } catch (error) {
+        if (error.message === "Product not found") {
+            return res.status(404).json({ message: error.message });
+        }
+        if (error.message === "Not authorized to view this product") {
+            return res.status(403).json({ message: error.message });
+        }
+        next(error)        
     }
 }
 

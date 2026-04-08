@@ -1,6 +1,6 @@
 import { Router } from "express";
 import upload from "../middlewares/upload.middleware.js";
-import { createProductController, getMyProductsController, getProductsController, togglePusblishController } from "../controllers/product.controller.js";
+import { createProductController, getMyProductsController, getProductByIdController, getProductsController, togglePusblishController } from "../controllers/product.controller.js";
 
 const router = Router();
 
@@ -14,6 +14,7 @@ router.post(
 );
 router.get("/", getProductsController);
 router.get("/my-products", getMyProductsController);
+router.get("/:id", getProductByIdController)
 router.patch("/:id/publish", togglePusblishController);
 
 export default router;
