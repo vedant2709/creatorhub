@@ -36,17 +36,6 @@ app.use(
 // Product service
 app.use(
   "/api/products",
-  (req, res, next) => {
-    // Apply auth only for specific methods/routes
-    if (
-      req.method === "POST" ||
-      req.path.includes("my-products") ||
-      req.path.includes("publish")
-    ) {
-      return authMiddleware(req, res, next);
-    }
-    next();
-  },
   createProxyMiddleware({
     target: process.env.PRODUCT_SERVICE_URL,
     changeOrigin: true,
@@ -54,16 +43,8 @@ app.use(
       path.startsWith("/api/products") ? path : `/api/products${path}`,
     proxyTimeout: 10000,
     timeout: 10000,
-
     on: {
-      proxyReq: (proxyReq, req) => {
-        // Re-stream parsed JSON body to upstream service for POST/PUT/PATCH.
-        fixRequestBody(proxyReq, req);
-
-        if (req.user) {
-          proxyReq.setHeader("x-user", JSON.stringify(req.user));
-        }
-      },
+      proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
         res.status(502).json({
           success: false,

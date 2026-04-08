@@ -1,4 +1,4 @@
-import { createProductService, getMyProductsService, getProductByIdService, getProductsService, togglePublishService } from "../services/product.service.js";
+import { createProductService, deleteProductService, getMyProductsService, getProductByIdService, getProductsService, togglePublishService, updateProductService } from "../services/product.service.js";
 import { createProductSchema } from "../validators/product.validator.js";
 
 export const createProductController = async(req,res,next) => {
@@ -159,5 +159,105 @@ export const togglePusblishController = async(req,res,next) => {
         });
     } catch (error) {
         next(error)
+    }
+}
+
+export const updateProductController = async(req,res,next) => {
+    try {
+        const { id } = req.params;
+
+        // 🔥 Role check
+        if (req.user.role !== "creator") {
+            return res.status(403).json({
+                message: "Only creators allowed"
+            });
+        }
+
+        // 🔥 Files (optional)
+        const file = req.files?.file?.[0];
+        const thumbnail = req.files?.thumbnail?.[0];
+
+        let tags = [];
+
+        const updateData = {};
+
+        if (req.body.title) {
+            updateData.title = req.body.title;
+        }
+
+        if (req.body.description) {
+            updateData.description = req.body.description;
+        }
+
+        if (req.body.price) {
+            updateData.price = Number(req.body.price);
+        }
+
+        // 🔥 Tags (only if provided)
+        if (req.body.tags) {
+            try {
+                updateData.tags = JSON.parse(req.body.tags);
+            } catch {
+                return res.status(400).json({
+                    message: "Invalid tags format"
+                });
+            }
+        }
+
+        // 🔥 Files
+        if (file) updateData.fileUrl = file.path;
+        if (thumbnail) updateData.thumbnail = thumbnail.path;
+
+        const updatedProduct = await updateProductService(
+            id,
+            req.user.id,
+            updateData
+        );
+
+        res.json({
+            success: true,
+            message: "Product updated successfully",
+            data: updatedProduct
+        });
+    } catch (error) {
+        if (error.message === "Product not found") {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (error.message === "Not authorized") {
+            return res.status(403).json({ message: error.message });
+        }
+
+        next(error);
+    }
+}
+
+export const deleteProductController = async(req,res,next) => {
+    try {
+        const { id } = req.params;
+
+        if (req.user.role !== "creator") {
+            return res.status(403).json({
+                message: "Only creators allowed"
+            });
+        }
+        
+        await deleteProductService(id, req.user.id);
+
+         res.json({
+            success: true,
+            message: "Product deleted successfully"
+        });
+
+    } catch (error) {
+        if (error.message === "Product not found") {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (error.message === "Not authorized") {
+            return res.status(403).json({ message: error.message });
+        }
+
+        next(error);
     }
 }

@@ -79,3 +79,39 @@ export const togglePublishService = async (productId, userId) => {
 
   return product;
 }
+
+export const updateProductService = async(productId, userId, updateData) => {
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  // 🔥 Ownership check
+  if (product.creatorId !== userId) {
+    throw new Error("Not authorized");
+  }
+
+  // ✅ Update fields
+  Object.assign(product, updateData);
+
+  await product.save();
+
+  return product;
+}
+
+export const deleteProductService = async(productId, userId) => {
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  if (product.creatorId !== userId) {
+    throw new Error("Not authorized");
+  }
+
+  await product.deleteOne();
+
+  return true;
+}
