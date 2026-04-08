@@ -1,6 +1,6 @@
 import express from "express"
 import cors from "cors"
-import {createProxyMiddleware} from "http-proxy-middleware"
+import {createProxyMiddleware, fixRequestBody} from "http-proxy-middleware"
 import dotenv from "dotenv"
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 
@@ -9,13 +9,29 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
+app.use(express.json());
 
 // Auth service
-app.use(createProxyMiddleware({
+app.use(
+  "/api/auth",
+  createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
-    pathFilter: "/api/auth"
-}));
+    pathRewrite: (path) =>
+      path.startsWith("/api/auth") ? path : `/api/auth${path}`,
+    proxyTimeout: 10000,
+    timeout: 10000,
+    on: {
+      proxyReq: fixRequestBody,
+      error: (_err, _req, res) => {
+        res.status(502).json({
+          success: false,
+          message: "Auth service unavailable"
+        });
+      }
+    }
+  })
+);
 
 // Product service
 app.use(
@@ -24,22 +40,29 @@ app.use(
   createProxyMiddleware({
     target: process.env.PRODUCT_SERVICE_URL,
     changeOrigin: true,
-
-    pathRewrite: {
-      "^/api/products": ""   // 🔥 THIS FIXES IT
-    },
+    pathRewrite: (path) =>
+      path.startsWith("/api/products") ? path : `/api/products${path}`,
+    proxyTimeout: 10000,
+    timeout: 10000,
 
     on: {
       proxyReq: (proxyReq, req) => {
+        // Re-stream parsed JSON body to upstream service for POST/PUT/PATCH.
+        fixRequestBody(proxyReq, req);
+
         if (req.user) {
           proxyReq.setHeader("x-user", JSON.stringify(req.user));
         }
+      },
+      error: (_err, _req, res) => {
+        res.status(502).json({
+          success: false,
+          message: "Product service unavailable"
+        });
       }
     }
   })
 );
-
-app.use(express.json());
 
 app.listen(process.env.PORT, () => {
   console.log(`API Gateway running on port ${process.env.PORT}`);

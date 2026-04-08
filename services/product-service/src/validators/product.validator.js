@@ -7,9 +7,7 @@ export const createProductSchema = Joi.object({
 
   price: Joi.number().min(0).required(),
 
-  fileUrl: Joi.string().uri().required(),
-
   thumbnail: Joi.string().uri().optional(),
 
-  tags: Joi.array().items(Joi.string()).optional()
+  // tags: Joi.array().items(Joi.string()).optional()
 });
