@@ -10,7 +10,7 @@ export const createProductController = async(req,res,next) => {
             });
         }
 
-        console.log("Product request body...",req.body)
+        // console.log("Product request body...",req.body)
          // ✅ 1. Validate body (text fields only)
         const { error } = createProductSchema.validate(req.body);
 

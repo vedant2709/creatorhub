@@ -55,6 +55,28 @@ app.use(
   })
 );
 
+// Order service
+app.use(
+  "/api/orders",
+  createProxyMiddleware({
+    target: process.env.ORDER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path) =>
+      path.startsWith("/api/orders") ? path : `/api/orders${path}`,
+    proxyTimeout: 10000,
+    timeout: 10000,
+    on: {
+      proxyReq: fixRequestBody,
+      error: (_err, _req, res) => {
+        res.status(502).json({
+          success: false,
+          message: "Order service unavailable"
+        });
+      }
+    }
+  })
+);
+
 app.listen(process.env.PORT, () => {
   console.log(`API Gateway running on port ${process.env.PORT}`);
 });
