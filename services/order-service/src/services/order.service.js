@@ -24,3 +24,31 @@ export const getOrderByIdService = async(orderId, userId) => {
 
     return order;
 }
+
+export const updateOrderStatusService = async(orderId, status, paymentId) => {
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+        throw new Error("Order not found");
+    }
+
+    order.status = status;
+
+    if(paymentId){
+        order.paymentId = paymentId
+    }
+
+    await order.save();
+
+    return order;
+}
+
+export const checkPurchaseService = async(userId, productId) => {
+    const order = await Order.findOne({
+        userId,
+        productId,
+        status: "paid"
+    });
+
+    return !!order;
+}

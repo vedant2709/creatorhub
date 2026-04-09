@@ -1,6 +1,6 @@
 import { Config } from "../config/config.js";
 import Order from "../models/order.model.js";
-import { createOrderService, getOrderByIdService, getOrdersService } from "../services/order.service.js";
+import { checkPurchaseService, createOrderService, getOrderByIdService, getOrdersService, updateOrderStatusService } from "../services/order.service.js";
 
 export const createOrderController = async(req,res,next) => {
     try {
@@ -95,5 +95,51 @@ export const getOrderByIdController = async(req,res,next) => {
         }
 
         next(error);
+    }
+}
+
+export const updateOrderStatusController = async(req,res,next) => {
+    try {
+        const {id} = req.params;
+        const {status, paymentId} = req.body;
+
+        // ✅ Validate status
+        const allowedStatuses = ["pending","paid","failed"];
+
+        if(!allowedStatuses.includes(status)){
+            return res.status(400),json({
+                message: "Invalid status"
+            })
+        }
+
+        const order = await updateOrderStatusService(id, status, paymentId);
+
+        res.json({
+            success: true,
+            message: "Order status updated",
+            data: order
+        });
+    } catch (error) {
+        if (error.message === "Order not found") {
+            return res.status(404).json({
+                message: error.message
+            });
+        }
+        next(error);
+    }
+}
+
+export const checkPurchaseController = async(req,res,next) => {
+    try {
+        const {productId} = req.params;
+        
+        const purchased = await checkPurchaseService(req.user.id, productId);
+
+        res.json({
+            success: true,
+            purchased
+        });
+    } catch (error) {
+        next(error)
     }
 }
