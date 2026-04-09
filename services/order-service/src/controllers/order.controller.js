@@ -1,6 +1,6 @@
 import { Config } from "../config/config.js";
 import Order from "../models/order.model.js";
-import { createOrderService } from "../services/order.service.js";
+import { createOrderService, getOrderByIdService, getOrdersService } from "../services/order.service.js";
 
 export const createOrderController = async(req,res,next) => {
     try {
@@ -53,6 +53,47 @@ export const createOrderController = async(req,res,next) => {
             data: order
         });
     } catch (error) {
+        next(error);
+    }
+}
+
+export const getOrdersController = async(req,res,next) => {
+    try {
+        const orders = await getOrdersService(req.user.id);
+
+        res.json({
+            success: true,
+            count: orders.length,
+            data: orders
+        });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const getOrderByIdController = async(req,res,next) => {
+    try {
+        const { id } = req.params;
+
+        const order = await getOrderByIdService(id, req.user.id);
+
+        res.json({
+            success: true,
+            data: order
+        });
+    } catch (error) {
+        if (error.message === "Order not found") {
+            return res.status(404).json({
+                message: error.message
+            });
+        }
+
+        if (error.message === "Not authorized") {
+            return res.status(403).json({
+                message: error.message
+            });
+        }
+
         next(error);
     }
 }
