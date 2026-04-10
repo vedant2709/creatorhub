@@ -1,6 +1,6 @@
 import { Router } from "express";
 import upload from "../middlewares/upload.middleware.js";
-import { createProductController, deleteProductController, getMyProductsController, getProductByIdController, getProductsController, togglePusblishController, updateProductController } from "../controllers/product.controller.js";
+import { createProductController, deleteProductController, downloadProductController, getMyProductsController, getProductByIdController, getProductsController, togglePusblishController, updateProductController } from "../controllers/product.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -29,5 +29,6 @@ router.put(
   updateProductController
 );
 router.delete("/:id", authMiddlware,deleteProductController);
+router.get("/:id/download", authMiddlware, downloadProductController);
 
 export default router;

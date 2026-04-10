@@ -1,4 +1,4 @@
-import { createProductService, deleteProductService, getMyProductsService, getProductByIdService, getProductsService, togglePublishService, updateProductService } from "../services/product.service.js";
+import { createProductService, deleteProductService, downloadProductService, getMyProductsService, getProductByIdService, getProductsService, togglePublishService, updateProductService } from "../services/product.service.js";
 import { createProductSchema } from "../validators/product.validator.js";
 
 export const createProductController = async(req,res,next) => {
@@ -259,5 +259,41 @@ export const deleteProductController = async(req,res,next) => {
         }
 
         next(error);
+    }
+}
+
+export const downloadProductController = async(req,res,next) => {
+    try {
+        const {id} = req.params;
+
+        console.log("ID...",id)
+        console.log(req.user)
+
+        if(!req.user){
+            return res.status(401).json({
+                message: "Unauthorized"
+            })
+        }
+
+        const data = await downloadProductService(id, req.headers.authorization);
+
+        console.log("Data...",data)
+
+        res.json({
+            success: true,
+            message: "Access granted",
+            data
+        })
+    } catch (error) {
+        console.log(error)
+        if(error.message === "Product not found"){
+            return res.status(404).json({message: error.message})
+        }
+
+        if(error.message.includes("not purchased")){
+            return res.status(403).json({message: error.message})
+        }
+
+        next(error)
     }
 }

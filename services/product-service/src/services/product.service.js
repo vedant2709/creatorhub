@@ -1,3 +1,4 @@
+import { Config } from "../config/config.js";
 import Product from "../models/product.model.js"
 
 export const createProductService = async (productData) => {
@@ -114,4 +115,40 @@ export const deleteProductService = async(productId, userId) => {
   await product.deleteOne();
 
   return true;
+}
+
+export const checkPurchase = async(productId, authorization) => {
+  const response = await fetch(
+    `${Config.ORDER_SERVICE_URL}/api/orders/check/${productId}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        authorization,
+      }
+    }
+  );
+
+  const data = await response.json();
+
+  return data.purchased;
+}
+
+export const downloadProductService = async(productId, authorization) => {
+  const product = await Product.findById(productId);
+  
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  
+  // 🔥 Check purchase
+  const purchased = await checkPurchase(productId, authorization);
+
+  if (!purchased) {
+    throw new Error("You have not purchased this product");
+  }
+
+  return {
+    fileUrl: product.fileUrl,
+    title: product.title
+  };
 }
