@@ -57,6 +57,13 @@ export const loginUserController = async(req,res,next) => {
 
         const { accessToken, refreshToken, user } = await loginUserService(req.body);
 
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: false, // true in production (HTTPS)
+            sameSite: "Strict",
+            maxAge: 15 * 60 * 1000 // 15 mins
+        });
+
         // 🍪 Set refresh token in cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
@@ -69,7 +76,6 @@ export const loginUserController = async(req,res,next) => {
             success: true,
             message: "Login successfully",
             data: {
-                accessToken,
                 user: {
                     id: user._id,
                     email: user.email,
@@ -126,6 +132,12 @@ export const logoutController = async(req,res,next) => {
 
         // 🍪 Clear cookie
         res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: false, // true in production
+            sameSite: "strict"
+        });
+
+        res.clearCookie("accessToken", {
             httpOnly: true,
             secure: false, // true in production
             sameSite: "strict"

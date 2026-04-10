@@ -4,13 +4,11 @@ import { Config } from "../config/config.js";
 
 export const authMiddlware = (req,res,next) => {
     try {
-        const authHeader = req.headers.authorization;
+        const token = req.cookies.accessToken;
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        if (!token) {
             throw new ApiError(401, "Unauthorized");
         }
-
-        const token = authHeader.split(" ")[1];
 
         const decoded = jwt.verify(token, Config.JWT_SECRET);
 
