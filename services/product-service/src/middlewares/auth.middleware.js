@@ -1,17 +1,18 @@
-import { Config } from "../config/config.js";
+import jwt from "jsonwebtoken"
 import ApiError from "../utils/ApiError.js";
-import jwt from "jsonwebtoken";
+import { Config } from "../config/config.js";
 
 export const authMiddlware = (req,res,next) => {
     try {
-        const authHeader = req.headers.authorization;
-        console.log(authHeader)
+        const cookieToken = req.cookies?.accessToken;
+        const bearerToken = req.headers.authorization?.startsWith("Bearer ")
+            ? req.headers.authorization.split(" ")[1]
+            : null;
+        const token = cookieToken || bearerToken;
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        if (!token) {
             throw new ApiError(401, "Unauthorized");
         }
-
-        const token = authHeader.split(" ")[1];
 
         const decoded = jwt.verify(token, Config.JWT_SECRET);
 
@@ -19,7 +20,6 @@ export const authMiddlware = (req,res,next) => {
 
         next();
     } catch (error) {
-        console.log("From product service auth middleware");
-        next(new ApiError(401, "Invalid or expired token"));
+        next(new ApiError(401, "Invalid or expired token from product service"));
     }
 }

@@ -1,13 +1,19 @@
-import {Config} from "../config/config.js";
-import {Resend} from "resend";
+import nodemailer from "nodemailer";
+import { Config } from "../config/config.js";
 
-const resend = new Resend(Config.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: Config.EMAIL_USER,
+        pass: Config.EMAIL_PASS,
+    },
+});
 
-export const sendVerificationEmail = async(email, token) => {
+export const sendVerificationEmail = async (email, token) => {
     const verifyUrl = `${Config.CLIENT_URL}/verify-email/${token}`;
 
-    await resend.emails.send({
-        from: Config.EMAIL_FROM,
+    await transporter.sendMail({
+        from: Config.EMAIL_USER,
         to: email,
         subject: "Verify your email",
         html: `
@@ -19,14 +25,14 @@ export const sendVerificationEmail = async(email, token) => {
             </a>
             <p>If you didn’t sign up, ignore this email.</p>
         `
-    })
-}
+    });
+};
 
-export const sendResetPasswordEmail = async(email, token) => {
+export const sendResetPasswordEmail = async (email, token) => {
     const resetUrl = `${Config.CLIENT_URL}/reset-password/${token}`;
 
-    await resend.emails.send({
-        from: Config.EMAIL_FROM,
+    await transporter.sendMail({
+        from: Config.EMAIL_USER,
         to: email,
         subject: "Reset your password",
         html: `
@@ -35,5 +41,5 @@ export const sendResetPasswordEmail = async(email, token) => {
             <a href="${resetUrl}">Reset Password</a>
             <p>This link expires in 15 minutes.</p>
         `
-    })
-}
+    });
+};

@@ -7,8 +7,10 @@ import { loginSchema, registerSchema } from "../validators/auth.validator.js"
 export const registerUserController = async(req,res,next) => {
     try {
         const {error} = registerSchema.validate(req.body);
+        
         if (error) {
-            throw new ApiError(400, error.details[0].message);
+            const message = error.details[0].message.replace(/"/g, "");
+            throw new ApiError(400, message);
         }
 
         const user = await registerUserService(req.body);
@@ -53,7 +55,11 @@ export const verifyEmailController = async(req,res,next) => {
 export const loginUserController = async(req,res,next) => {
     try {
         const { error } = loginSchema.validate(req.body);
-        if (error) throw new ApiError(400, error.details[0].message);
+        
+        if (error) {
+            const message = error.details[0].message.replace(/"/g, "");
+            throw new ApiError(400, message);
+        }
 
         const { accessToken, refreshToken, user } = await loginUserService(req.body);
 
@@ -107,6 +113,14 @@ export const refreshTokenController = async(req,res,next) => {
 
         const {newAccessToken, newRefreshToken} = await refreshTokenService(oldRefreshToken);
 
+        // 🍪 Set new access token cookie
+        res.cookie("accessToken", newAccessToken, {
+            httpOnly: true,
+            secure: false, // true in production
+            sameSite: "strict",
+            maxAge: 15 * 60 * 1000 // 15 mins
+        });
+
         // 🍪 Set new refresh token cookie
         res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
@@ -117,7 +131,7 @@ export const refreshTokenController = async(req,res,next) => {
 
         res.status(200).json({
             success: true,
-            accessToken: newAccessToken
+            message: "Tokens refreshed successfully"
         });
     } catch (error) {
         next(error)
