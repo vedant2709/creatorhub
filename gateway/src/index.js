@@ -101,6 +101,27 @@ app.use(
   })
 );
 
+app.use(
+  "/api/dashboard",
+  createProxyMiddleware({
+    target: process.env.DASHBOARD_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path) =>
+      path.startsWith("/api/dashboard") ? path : `/api/dashboard${path}`,
+    proxyTimeout: 10000,
+    timeout: 10000,
+    on: {
+      proxyReq: fixRequestBody,
+      error: (_err, _req, res) => {
+        res.status(502).json({
+          success: false,
+          message: "Dashboard service unavailable"
+        });
+      }
+    }
+  })
+);
+
 app.listen(process.env.PORT, () => {
   console.log(`API Gateway running on port ${process.env.PORT}`);
 });
