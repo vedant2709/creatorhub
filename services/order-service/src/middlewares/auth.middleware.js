@@ -4,20 +4,23 @@ import { Config } from "../config/config.js";
 
 export const authMiddlware = (req,res,next) => {
     try {
-        const authHeader = req.headers.authorization;
+        const cookieToken = req.cookies?.accessToken;
+        const bearerToken = req.headers.authorization?.startsWith("Bearer ")
+            ? req.headers.authorization.split(" ")[1]
+            : null;
+        const token = cookieToken || bearerToken;
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        if (!token) {
             throw new ApiError(401, "Unauthorized");
         }
-
-        const token = authHeader.split(" ")[1];
 
         const decoded = jwt.verify(token, Config.JWT_SECRET);
 
         req.user = decoded;
+        req.token = token; // 🔥 Store token for forwarding to other services
 
         next();
     } catch (error) {
-        next(new ApiError(401, "Invalid or expired token"));
+        next(new ApiError(401, "Invalid or expired token from order service"));
     }
 }

@@ -118,12 +118,13 @@ export const deleteProductService = async(productId, userId) => {
 }
 
 export const checkPurchase = async(productId, authorization) => {
+  console.log(authorization)
   const response = await fetch(
     `${Config.ORDER_SERVICE_URL}/api/orders/check/${productId}`,
     {
       headers: {
         "Content-Type": "application/json",
-        authorization,
+        authorization: `Bearer ${authorization}`,
       }
     }
   );

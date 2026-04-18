@@ -24,7 +24,9 @@ import {
   faFolderPlus,
   faBox,
   faImage,
-  faTrash
+  faTrash,
+  faExclamationTriangle,
+  faPencilAlt
 } from "@fortawesome/free-solid-svg-icons";
 
 // Add icons to library
@@ -33,7 +35,7 @@ library.add(
   faChartLine, faUsers, faDollarSign, faVideo, faCog,
   faSignOutAlt, faBell, faSearch, faHome, faPlus,
   faStar, faChevronDown, faGlobe, faAt, faBook, faFolderPlus,
-  faBox, faImage, faTrash
+  faBox, faImage, faTrash, faExclamationTriangle, faPencilAlt
 );
 
 export const EyeIcon = (props) => <FontAwesomeIcon icon={faEye} {...props} />;
@@ -60,5 +62,7 @@ export const FolderPlusIcon = (props) => <FontAwesomeIcon icon={faFolderPlus} {.
 export const BoxIcon = (props) => <FontAwesomeIcon icon={faBox} {...props} />;
 export const ImageIcon = (props) => <FontAwesomeIcon icon={faImage} {...props} />;
 export const TrashIcon = (props) => <FontAwesomeIcon icon={faTrash} {...props} />;
+export const ExclamationTriangleIcon = (props) => <FontAwesomeIcon icon={faExclamationTriangle} {...props} />;
+export const PencilIcon = (props) => <FontAwesomeIcon icon={faPencilAlt} {...props} />;
 
 export default FontAwesomeIcon;

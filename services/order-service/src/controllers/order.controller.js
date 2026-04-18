@@ -13,11 +13,13 @@ export const createOrderController = async(req,res,next) => {
                 method: "GET",
                 headers: {
                 "Content-Type": "application/json",
-                authorization: req.headers.authorization,
+                authorization: `Bearer ${req.token}`, // 🔥 Use the token extracted by middleware
                 "x-user": JSON.stringify(req.user)
                 }
             }
         );
+
+        console.log(response);
 
         const productData = await response.json();
 
@@ -32,12 +34,21 @@ export const createOrderController = async(req,res,next) => {
         const existingOrder = await Order.findOne({
             userId: req.user.id,
             productId,
-            status: {$in: ["pending","paid"]}
+            status: { $in: ["pending", "paid"] }
         });
 
         if (existingOrder) {
-            return res.status(400).json({
-                message: "Order already exists or product already purchased"
+            if (existingOrder.status === "paid") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Product already purchased"
+                });
+            }
+            // 🔥 If pending, return the existing order so UI can resume payment
+            return res.status(200).json({
+                success: true,
+                data: existingOrder,
+                message: "Resuming existing order"
             });
         }
 

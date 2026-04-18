@@ -33,6 +33,15 @@ export const updateProduct = async (productId, productData) => {
   }
 };
 
+export const togglePublish = async (productId) => {
+  try {
+    const res = await api.patch(`/products/${productId}/publish`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to update status");
+  }
+};
+
 export const deleteProduct = async (productId) => {
   try {
     const res = await api.delete(`/products/${productId}`);

@@ -9,5 +9,5 @@ export const createProductSchema = Joi.object({
 
   thumbnail: Joi.string().uri().optional(),
 
-  // tags: Joi.array().items(Joi.string()).optional()
+  tags: Joi.string().optional()
 });

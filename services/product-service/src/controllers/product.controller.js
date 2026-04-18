@@ -266,24 +266,20 @@ export const downloadProductController = async(req,res,next) => {
     try {
         const {id} = req.params;
 
-        console.log("ID...",id)
-        console.log(req.user)
-
         if(!req.user){
             return res.status(401).json({
                 message: "Unauthorized"
             })
         }
 
-        const data = await downloadProductService(id, req.headers.authorization);
-
-        console.log("Data...",data)
+        const data = await downloadProductService(id, req.cookies?.accessToken);
 
         res.json({
             success: true,
             message: "Access granted",
             data
         })
+        
     } catch (error) {
         console.log(error)
         if(error.message === "Product not found"){

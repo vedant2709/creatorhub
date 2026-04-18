@@ -25,6 +25,15 @@ export const getProductById = async (id) => {
   }
 };
 
+export const downloadProduct = async (id) => {
+  try {
+    const res = await api.get(`/products/${id}/download`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get download link");
+  }
+};
+
 // Fallback for cases where `/products/:id` is protected on the backend:
 // scan public `/products` pages and find the product by `_id`.
 export const getPublicProductById = async (id, { limit = 50, maxPages = 10 } = {}) => {
