@@ -219,7 +219,7 @@ export default function ProductDetails() {
   const description = product?.description || "";
   const thumbnail = product?.thumbnail || FALLBACK_THUMBNAIL;
   const priceNumber = Number(product?.price || 0);
-  const priceLabel = priceNumber === 0 ? "Free" : `$${priceNumber}`;
+  const priceLabel = priceNumber === 0 ? "Free" : `₹${priceNumber}`;
   const tags = Array.isArray(product?.tags) ? product.tags : [];
 
   return (

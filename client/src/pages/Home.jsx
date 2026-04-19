@@ -85,14 +85,12 @@ export default function Home() {
         <div className="flex items-center space-x-3">
           {user ? (
             <>
-              {user.role === "creator" && (
-                <button
-                  onClick={() => navigate("/dashboard")}
-                  className="px-4 py-2 rounded-xl text-sm font-bold bg-white text-[#2d32d3] hover:bg-indigo-50 transition-all border border-indigo-100"
-                >
-                  Dashboard
-                </button>
-              )}
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-white text-[#2d32d3] hover:bg-indigo-50 transition-all border border-indigo-100"
+              >
+                Dashboard
+              </button>
               <div className="flex items-center space-x-3 bg-gray-50/50 px-4 py-2 rounded-2xl border border-gray-100 transition-all hover:bg-gray-50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2d32d3] to-[#4f46e5] flex items-center justify-center text-white shadow-md border-2 border-white">
                   <span className="text-sm font-bold uppercase">
@@ -208,7 +206,7 @@ export default function Home() {
                     const author = product?.creatorId ? `Creator ${String(product.creatorId).slice(0, 6)}` : "Creator";
                     const badge = (product?.tags?.[0] || "Product").toUpperCase();
                     const price =
-                      Number(product?.price || 0) === 0 ? "Free" : `$${Number(product?.price || 0)}`;
+                      Number(product?.price || 0) === 0 ? "Free" : `₹${Number(product?.price || 0)}`;
                     const thumbnail = product?.thumbnail || FALLBACK_THUMBNAIL;
 
                     return (

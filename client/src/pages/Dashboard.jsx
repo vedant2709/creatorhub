@@ -9,6 +9,9 @@ import {
   togglePublish,
   updateProduct
 } from '../services/creator.service';
+import { getDashboardStats } from '../services/dashboard.service';
+import { getMyOrders } from '../services/order.service';
+import { getProductById, downloadProduct } from '../services/products.service';
 import { 
   PlusIcon, 
   BoxIcon, 
@@ -30,7 +33,19 @@ function Dashboard() {
   
   // States
   const [products, setProducts] = useState([]);
+  const [userOrders, setUserOrders] = useState([]);
+  const [purchasedProducts, setPurchasedProducts] = useState([]);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalSales: 0,
+    totalProducts: 0,
+    avgOrderValue: 0,
+    topProducts: [],
+    revenueByDate: {}
+  });
   const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, productId: null, productTitle: '' });
@@ -48,8 +63,77 @@ function Dashboard() {
   useEffect(() => {
     if (isCreator) {
       loadProducts();
+      loadStats();
+    } else if (user) {
+      loadUserDashboard();
     }
-  }, [isCreator]);
+  }, [isCreator, user]);
+
+  const loadUserDashboard = async () => {
+    try {
+      setOrdersLoading(true);
+      const res = await getMyOrders();
+      if (res?.success) {
+        const orders = res.data || [];
+        setUserOrders(orders);
+        
+        // Fetch details for paid products
+        const paidOrders = orders.filter(o => o.status === 'paid');
+        const productDetails = await Promise.all(
+          paidOrders.map(async (order) => {
+            try {
+              const pRes = await getProductById(order.productId);
+              return pRes?.data;
+            } catch (err) {
+              return { _id: order.productId, title: 'Unknown Product', price: order.amount };
+            }
+          })
+        );
+        setPurchasedProducts(productDetails.filter(Boolean));
+      }
+    } catch (error) {
+      console.error("Failed to load user dashboard:", error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleDownload = async (id) => {
+    try {
+      toast.info("Preparing download...");
+      const res = await downloadProduct(id);
+      if (res.success && res.data.fileUrl) {
+        const response = await fetch(res.data.fileUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const fileName = res.data.title ? `${res.data.title.replace(/\s+/g, '_')}_asset` : 'asset';
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+        toast.success("Download started!");
+      }
+    } catch (error) {
+      toast.error("Download failed");
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      setStatsLoading(true);
+      const res = await getDashboardStats();
+      if (res?.success) {
+        setStats(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to load stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -214,32 +298,122 @@ function Dashboard() {
         {isCreator ? (
           <div className="space-y-8">
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-4">
                   <BoxIcon />
                 </div>
-                <div className="text-2xl font-black text-gray-900">{products.length}</div>
+                <div className="text-2xl font-black text-gray-900">
+                  {statsLoading ? "..." : stats.totalProducts}
+                </div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Total Products</div>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 mb-4">
                   <DollarSignIcon />
                 </div>
-                <div className="text-2xl font-black text-gray-900">$0.00</div>
+                <div className="text-2xl font-black text-gray-900">
+                  {statsLoading ? "..." : `₹${stats.totalRevenue.toLocaleString('en-IN')}`}
+                </div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Revenue</div>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-4">
                   <ChartLineIcon />
                 </div>
-                <div className="text-2xl font-black text-gray-900">0</div>
+                <div className="text-2xl font-black text-gray-900">
+                  {statsLoading ? "..." : stats.totalSales}
+                </div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Total Sales</div>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 mb-4">
+                  <DollarSignIcon />
+                </div>
+                <div className="text-2xl font-black text-gray-900">
+                  {statsLoading ? "..." : `₹${stats.avgOrderValue.toFixed(2)}`}
+                </div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Avg. Order</div>
               </div>
               <div className="bg-[#2d32d3] p-6 rounded-3xl shadow-lg shadow-indigo-100 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-indigo-800 transition-all"
                    onClick={() => { setShowAddForm(true); setEditingProduct(null); }}>
                 <PlusIcon className="text-white text-2xl mb-2" />
                 <span className="text-white font-black text-sm uppercase tracking-wider">Add New Product</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Revenue Trend Chart */}
+              <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-black text-gray-900">Revenue Trend</h2>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last 7 Days</span>
+                </div>
+                <div className="h-64 flex items-end justify-between gap-3 px-2">
+                  {(() => {
+                    const days = [];
+                    const now = new Date();
+                    for (let i = 6; i >= 0; i--) {
+                      const d = new Date();
+                      d.setUTCDate(now.getUTCDate() - i);
+                      days.push(d.toISOString().split('T')[0]);
+                    }
+                    
+                    const revenues = Object.values(stats.revenueByDate || {});
+                    const maxRevenue = Math.max(...revenues, 10);
+                    
+                    return days.map(date => {
+                      const revenue = stats.revenueByDate?.[date] || 0;
+                      const height = (revenue / maxRevenue) * 100;
+                      const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+                      const fullDate = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+                      
+                      return (
+                        <div key={date} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                          <div className="absolute -top-12 bg-gray-900 text-white text-[10px] font-bold px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10 whitespace-nowrap shadow-xl flex flex-col items-center gap-1 scale-95 group-hover:scale-100 origin-bottom">
+                            <span className="text-gray-400 text-[9px] uppercase tracking-tighter">{fullDate}</span>
+                            <span className="text-white text-xs">₹{revenue.toLocaleString('en-IN')}</span>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
+                          </div>
+                          <div 
+                            className="w-full bg-indigo-50/50 rounded-t-xl group-hover:bg-indigo-100 transition-all relative overflow-hidden min-h-[4px]"
+                            style={{ height: `${Math.max(height, 2)}%` }}
+                          >
+                            {revenue > 0 && (
+                              <div 
+                                className="absolute inset-0 bg-[#2d32d3]"
+                              />
+                            )}
+                          </div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase mt-4">{dayName}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* Top Performing Assets */}
+              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <h2 className="text-2xl font-black text-gray-900 mb-6">Top Performers</h2>
+                <div className="space-y-6">
+                  {stats.topProducts?.length > 0 ? stats.topProducts.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between group">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <h4 className="font-bold text-gray-900 truncate group-hover:text-[#2d32d3] transition-colors">{p.title}</h4>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{p.sales} Sales</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-[#2d32d3]">₹{p.revenue.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-10 opacity-50">
+                      <ChartLineIcon className="text-3xl text-gray-200 mb-2 mx-auto" />
+                      <p className="text-xs font-bold text-gray-400 uppercase">No sales yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -278,7 +452,7 @@ function Dashboard() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Price ($)</label>
+                          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Price (₹)</label>
                           <input
                             required
                             type="number"
@@ -375,7 +549,7 @@ function Dashboard() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Price ($)</label>
+                          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Price (₹)</label>
                           <input
                             required
                             type="number"
@@ -504,7 +678,7 @@ function Dashboard() {
                             </button>
                           </div>
                           <div className="absolute bottom-4 left-4 bg-[#2d32d3] text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-lg">
-                            ${product.price}
+                            ₹{product.price}
                           </div>
                         </div>
                         <div className="p-6">
@@ -527,18 +701,66 @@ function Dashboard() {
           </div>
         ) : (
           /* Non-Creator View (Regular User) */
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
-              <div className="text-4xl font-black text-[#1a1c1e]">0</div>
-              <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">My Assets</div>
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
+                <div className="text-4xl font-black text-[#1a1c1e]">
+                  {ordersLoading ? "..." : purchasedProducts.length}
+                </div>
+                <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">My Assets</div>
+              </div>
+              <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
+                <div className="text-4xl font-black text-[#1a1c1e]">
+                  {ordersLoading ? "..." : purchasedProducts.length}
+                </div>
+                <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">Downloads</div>
+              </div>
+              <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
+                <div className="text-4xl font-black text-[#1a1c1e]">
+                  {ordersLoading ? "..." : `₹${userOrders.filter(o => o.status === 'paid').reduce((sum, o) => sum + o.amount, 0).toLocaleString('en-IN')}`}
+                </div>
+                <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">Spent</div>
+              </div>
             </div>
-            <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
-              <div className="text-4xl font-black text-[#1a1c1e]">0</div>
-              <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">Downloads</div>
-            </div>
-            <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
-              <div className="text-4xl font-black text-[#1a1c1e]">$0.00</div>
-              <div className="text-xs text-indigo-600 uppercase tracking-[0.2em] font-black mt-3">Spent</div>
+
+            <div className="space-y-6">
+              <h2 className="text-2xl font-black text-gray-900">Your Library</h2>
+              {ordersLoading ? (
+                <div className="flex justify-center py-20"><SpinnerIcon className="animate-spin text-[#2d32d3] text-4xl" /></div>
+              ) : purchasedProducts.length === 0 ? (
+                <div className="bg-white p-20 rounded-3xl border-2 border-dashed border-gray-200 text-center">
+                  <BoxIcon className="text-5xl text-gray-200 mb-4 mx-auto" />
+                  <h3 className="text-xl font-bold text-gray-400">Your library is empty</h3>
+                  <p className="text-gray-400 text-sm mt-2">Browse the marketplace to find amazing digital assets.</p>
+                  <button onClick={() => navigate('/')} className="mt-6 px-6 py-3 bg-[#2d32d3] text-white rounded-xl font-bold text-sm">Browse Marketplace</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {purchasedProducts.map(product => (
+                    <div key={product._id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
+                      <div className="aspect-video relative overflow-hidden bg-gray-100">
+                        <img 
+                          src={product.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800'} 
+                          alt={product.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute top-4 right-4">
+                          <button 
+                            onClick={() => handleDownload(product._id)}
+                            className="px-4 py-2 rounded-xl bg-white/90 backdrop-blur-sm text-[#2d32d3] font-bold text-xs shadow-sm hover:bg-[#2d32d3] hover:text-white transition-all"
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <h4 className="font-black text-gray-900 text-lg leading-tight group-hover:text-[#2d32d3] transition-colors">{product.title}</h4>
+                        <p className="text-gray-500 text-sm mt-2 line-clamp-1 font-medium">{product.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
