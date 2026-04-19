@@ -9,7 +9,7 @@ import {
   togglePublish,
   updateProduct
 } from '../services/creator.service';
-import { getDashboardStats } from '../services/dashboard.service';
+import { getDashboardStats, getAIInsights } from '../services/dashboard.service';
 import { getMyOrders } from '../services/order.service';
 import { getProductById, downloadProduct } from '../services/products.service';
 import { 
@@ -24,7 +24,9 @@ import {
   GlobeIcon,
   EyeSlashIcon,
   ExclamationTriangleIcon,
-  PencilIcon
+  PencilIcon,
+  StarIcon,
+  TimesCircleIcon
 } from '../components/FontAwesomeIcons';
 
 function Dashboard() {
@@ -43,8 +45,10 @@ function Dashboard() {
     topProducts: [],
     revenueByDate: {}
   });
+  const [aiInsights, setAiInsights] = useState(null);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -132,6 +136,21 @@ function Dashboard() {
       console.error("Failed to load stats:", error);
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const handleGetAIInsights = async () => {
+    try {
+      setAiLoading(true);
+      const res = await getAIInsights();
+      if (res?.success) {
+        setAiInsights(res.data);
+        toast.success("AI Insights generated!");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -347,7 +366,17 @@ function Dashboard() {
               <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-black text-gray-900">Revenue Trend</h2>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last 7 Days</span>
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={handleGetAIInsights}
+                      disabled={aiLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#2d32d3] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm disabled:opacity-50"
+                    >
+                      {aiLoading ? <SpinnerIcon className="animate-spin text-sm" /> : <ChartLineIcon className="text-sm" />}
+                      {aiLoading ? "Analyzing..." : "Get AI Insights"}
+                    </button>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last 7 Days</span>
+                  </div>
                 </div>
                 <div className="h-64 flex items-end justify-between gap-3 px-2">
                   {(() => {
@@ -416,6 +445,80 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* AI Insights Display */}
+            {aiInsights && (
+              <div className="bg-gradient-to-br from-[#2d32d3] to-[#4f46e5] rounded-[32px] p-8 md:p-12 shadow-2xl shadow-indigo-200 text-white animate-in slide-in-from-bottom duration-700 relative overflow-hidden">
+                {/* Close Button */}
+                <button 
+                  onClick={() => setAiInsights(null)}
+                  className="absolute top-2 right-6 w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all border border-white/10 z-20 group"
+                  title="Close Insights"
+                >
+                  <TimesCircleIcon className="text-xl group-hover:scale-110 transition-transform" />
+                </button>
+
+                <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                  <div className="flex-1 space-y-6">
+                    <div>
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                        AI Analysis Powered by Gemini
+                      </div>
+                      <h2 className="text-3xl font-black mb-2 leading-tight">Growth Strategy & Insights</h2>
+                      <p className="text-indigo-100 font-medium text-lg leading-relaxed opacity-90">{aiInsights.summary}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-200 mb-4">Key Observations</h4>
+                        <ul className="space-y-3">
+                          {aiInsights.insights.map((insight, i) => (
+                            <li key={i} className="flex gap-3 text-sm font-bold items-start">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-indigo-300 rounded-full shrink-0" />
+                              {typeof insight === 'object' ? (insight.insight || insight.text || JSON.stringify(insight)) : insight}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-200 mb-4">Actionable Steps</h4>
+                        <ul className="space-y-3">
+                          {aiInsights.suggestions.map((step, i) => (
+                            <li key={i} className="flex gap-3 text-sm font-bold items-start">
+                              <span className="mt-1.5 w-1.5 h-1.5 bg-green-400 rounded-full shrink-0" />
+                              <div className="flex flex-col gap-1">
+                                <span>{typeof step === 'object' ? (step.action || step.suggestion) : step}</span>
+                                {typeof step === 'object' && step.priority && (
+                                  <span className={`text-[9px] px-2 py-0.5 rounded-full w-fit uppercase tracking-tighter ${
+                                    step.priority.toLowerCase() === 'high' ? 'bg-red-500/30 text-red-200' : 'bg-blue-500/30 text-blue-200'
+                                  }`}>
+                                    {step.priority} Priority
+                                  </span>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {aiInsights.bestProduct && (
+                    <div className="w-full md:w-64 bg-white rounded-3xl p-6 shadow-xl text-[#1a1c1e] transform hover:-rotate-2 transition-transform duration-500">
+                      <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
+                        <StarIcon />
+                      </div>
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Top Potential</h4>
+                      <p className="font-black text-xl leading-tight mb-4">{aiInsights.bestProduct}</p>
+                      <div className="pt-4 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 font-bold leading-relaxed">This asset is driving your current engagement. Focus on similar content.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Main Content Area */}
             <div className="flex flex-col gap-8">
