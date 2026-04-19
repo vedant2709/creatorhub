@@ -19,8 +19,6 @@ export const createOrderController = async(req,res,next) => {
             }
         );
 
-        console.log(response);
-
         const productData = await response.json();
 
         if (!productData?.data) {
@@ -151,6 +149,48 @@ export const checkPurchaseController = async(req,res,next) => {
             purchased
         });
     } catch (error) {
+        next(error)
+    }
+}
+
+export const getCreatorOrders = async(req,res,next) => {
+    const user = req.user;
+
+    try {
+
+        if(user.role !== "creator"){
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized."
+            })
+        }
+
+        // 🔥 Step 1: Get creator products
+        const productsRes = await fetch(
+            `${Config.PRODUCT_SERVICE_URL}/my-products`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: `Bearer ${req.token}`, // 🔥 Use the token extracted by middleware
+                }
+            }
+        );
+
+        const productsData = await productsRes.json();
+        const productIds = productsData.products.map(p => p._id);
+
+        // 🔥 Step 2: Get orders for those products
+        const orders = await Order.find({
+            productId: {$in: productIds},
+            status: "paid"
+        });
+
+        res.json({
+            success: true,
+            data: orders
+        });
+    } catch (error) {
+        console.log("Error...",error)
         next(error)
     }
 }

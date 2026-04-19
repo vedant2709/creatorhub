@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken"
 import ApiError from "../utils/ApiError.js";
 import { Config } from "../config/config.js";
 
-export const authMiddlware = (req,res,next) => {
+export const authMiddleware = (req,res,next) => {
     try {
         const cookieToken = req.cookies?.accessToken;
         const bearerToken = req.headers.authorization?.startsWith("Bearer ")
@@ -17,6 +17,7 @@ export const authMiddlware = (req,res,next) => {
         const decoded = jwt.verify(token, Config.JWT_SECRET);
 
         req.user = decoded;
+        req.token = token;
 
         next();
     } catch (error) {

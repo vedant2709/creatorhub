@@ -4,7 +4,7 @@ import { Config } from "./config/config.js"
 const startServer = async () => {
     try {
         app.listen(Config.PORT, () => {
-            console.log(`Product service running on port ${Config.PORT}`);
+            console.log(`Dashboard service running on port ${Config.PORT}`);
         });
     } catch (error) {
         console.error("Failed to start server:", error);
