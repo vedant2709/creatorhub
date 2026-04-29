@@ -17,8 +17,16 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+
+          # Fix line endings if needed
+          dos2unix ~/.ssh/id_rsa 2>/dev/null || sed -i 's/\r$//' ~/.ssh/id_rsa
+
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Validate private key
+          ssh-keygen -l -f ~/.ssh/id_rsa || (echo "Invalid SSH key format" && exit 1)
 
       - name: Deploy application on VM
         run: |
