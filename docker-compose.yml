@@ -1,78 +1,105 @@
-version: "3.8"
-
 services:
-  mongodb:
-    image: mongo:6
-    container_name: mongodb
-    restart: unless-stopped
+  nginx:
+    image: nginx:alpine
     ports:
-      - "27017:27017"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - gateway
+    networks:
+      - creatorhub-network
+    restart: unless-stopped
+
+  gateway:
+    build: ./gateway
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PRODUCT_SERVICE_URL=http://product-service:3002
+      - ORDER_SERVICE_URL=http://order-service:3003
+      - DASHBOARD_SERVICE_URL=http://dashboard-service:3004
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+    volumes:
+      - ./logs/gateway:/app/logs
+    networks:
+      - creatorhub-network
+    restart: unless-stopped
+
+  auth-service:
+    build: ./services/auth-service
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://mongodb:27017/auth
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_VERIFY_SECRET=${EMAIL_VERIFY_SECRET}
+      - RESET_PASSWORD_SECRET=${RESET_PASSWORD_SECRET}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+    volumes:
+      - ./logs/auth-service:/app/logs
+    networks:
+      - creatorhub-network
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  product-service:
+    build: ./services/product-service
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://mongodb:27017/products
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    volumes:
+      - ./logs/product-service:/app/logs
+    networks:
+      - creatorhub-network
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  order-service:
+    build: ./services/order-service
+    environment:
+      - PORT=3003
+      - MONGO_URI=mongodb://mongodb:27017/orders
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+    volumes:
+      - ./logs/order-service:/app/logs
+    networks:
+      - creatorhub-network
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  dashboard-service:
+    build: ./services/dashboard-service
+    environment:
+      - PORT=3004
+    volumes:
+      - ./logs/dashboard-service:/app/logs
+    networks:
+      - creatorhub-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
     volumes:
       - mongodb_data:/data/db
     networks:
       - creatorhub-network
-
-  auth-service:
-    build:
-      context: ./services/auth-service
-    container_name: auth-service
     restart: unless-stopped
-    env_file:
-      - ./services/auth-service/.env
-    ports:
-      - "3001:3001"
-    depends_on:
-      - mongodb
-    networks:
-      - creatorhub-network
-
-  product-service:
-    build:
-      context: ./services/product-service
-    container_name: product-service
-    restart: unless-stopped
-    env_file:
-      - ./services/product-service/.env
-    ports:
-      - "3002:3002"
-    depends_on:
-      - mongodb
-    networks:
-      - creatorhub-network
-
-  order-service:
-    build:
-      context: ./services/order-service
-    container_name: order-service
-    restart: unless-stopped
-    env_file:
-      - ./services/order-service/.env
-    ports:
-      - "3003:3003"
-    depends_on:
-      - mongodb
-    networks:
-      - creatorhub-network
-
-  gateway-service:
-    build:
-      context: ./gateway
-    container_name: gateway-service
-    restart: unless-stopped
-    env_file:
-      - ./gateway/.env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - auth-service
-      - product-service
-      - order-service
-    networks:
-      - creatorhub-network
-
-volumes:
-  mongodb_data:
 
 networks:
   creatorhub-network:
     driver: bridge
+
+volumes:
+  mongodb_data:

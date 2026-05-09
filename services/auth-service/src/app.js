@@ -4,8 +4,17 @@ import authRoutes from "./routes/auth.route.js"
 import cookieParser from "cookie-parser"
 import cors from "cors"
 import { Config } from "./config/config.js";
+import morgan from "morgan";
+import logger from "./utils/logger.js";
 
 const app = express();
+
+app.use(
+  morgan("combined", {
+    skip: (req, res) => res.statusCode < 400,
+    stream: { write: (message) => logger.info(message.trim()) },
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());

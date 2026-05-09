@@ -5,6 +5,8 @@ import dotenv from "dotenv"
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
+import morgan from "morgan";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
@@ -15,6 +17,14 @@ app.set("trust proxy", 1);
 
 // Security Headers
 app.use(helmet());
+
+// Logging - Only log failed requests to clean up logs
+app.use(
+  morgan("combined", {
+    skip: (req, res) => res.statusCode < 400,
+    stream: { write: (message) => logger.info(message.trim()) },
+  })
+);
 
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -66,6 +76,7 @@ app.use(
     on: {
       proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
+        logger.error("Auth service unavailable");
         res.status(502).json({
           success: false,
           message: "Auth service unavailable"
@@ -88,6 +99,7 @@ app.use(
     on: {
       proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
+        logger.error("Product service unavailable");
         res.status(502).json({
           success: false,
           message: "Product service unavailable"
@@ -110,6 +122,7 @@ app.use(
     on: {
       proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
+        logger.error("Order service unavailable");
         res.status(502).json({
           success: false,
           message: "Order service unavailable"
@@ -131,6 +144,7 @@ app.use(
     on: {
       proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
+        logger.error("Payment service unavailable");
         res.status(502).json({
           success: false,
           message: "Payment service unavailable"
@@ -152,6 +166,7 @@ app.use(
     on: {
       proxyReq: fixRequestBody,
       error: (_err, _req, res) => {
+        logger.error("Dashboard service unavailable");
         res.status(502).json({
           success: false,
           message: "Dashboard service unavailable"
@@ -162,5 +177,5 @@ app.use(
 );
 
 app.listen(process.env.PORT, () => {
-  console.log(`API Gateway running on port ${process.env.PORT}`);
+  logger.info(`API Gateway running on port ${process.env.PORT}`);
 });
