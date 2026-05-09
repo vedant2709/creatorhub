@@ -49,7 +49,7 @@ app.use(globalLimiter);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "UP", service: "Gateway" });
+  res.status(200).json({ status: "UP", service: "Gateway", message: "API Gateway server up and running." });
 });
 
 // Auth service - Apply Auth Limiter here
