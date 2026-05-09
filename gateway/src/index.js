@@ -3,10 +3,18 @@ import cors from "cors"
 import {createProxyMiddleware, fixRequestBody} from "http-proxy-middleware"
 import dotenv from "dotenv"
 import { authMiddleware } from "./middlewares/auth.middleware.js";
+import { rateLimit } from "express-rate-limit";
+import helmet from "helmet";
 
 dotenv.config();
 
 const app = express();
+
+// Trust proxy for Nginx/Managed environments to get real user IP
+app.set("trust proxy", 1);
+
+// Security Headers
+app.use(helmet());
 
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -14,9 +22,40 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Auth service
+// 1. Global Rate Limiter: Applies to all requests
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per 15 mins
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes"
+  }
+});
+
+// 2. Strict Limiter: Specifically for Auth (Login/Register)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20, // 20 attempts allowed per 15 mins
+  message: {
+    success: false,
+    message: "Too many authentication attempts, please try again later."
+  }
+});
+
+// Apply Global Limiter
+app.use(globalLimiter);
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "UP", service: "Gateway" });
+});
+
+// Auth service - Apply Auth Limiter here
 app.use(
   "/api/auth",
+  authLimiter,
   createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
