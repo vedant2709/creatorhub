@@ -1,4 +1,4 @@
-name: Deploy to GCP VM
+name: Deploy CreatorHub
 
 on:
   push:
@@ -8,31 +8,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
-
-          # Fix line endings if needed
-          dos2unix ~/.ssh/id_rsa 2>/dev/null || sed -i 's/\r$//' ~/.ssh/id_rsa
-
-          chmod 600 ~/.ssh/id_rsa
-
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-          # Validate private key
-          ssh-keygen -l -f ~/.ssh/id_rsa || (echo "Invalid SSH key format" && exit 1)
-
-      - name: Deploy application on VM
-        run: |
-          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            cd ~/projects/creatorhub
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/vedantchaudhary/projects/creatorhub
             git pull origin main
-            docker compose down
-            docker compose up --build -d
-          EOF
+            docker-compose up -d --build --remove-orphans
+            docker image prune -f
